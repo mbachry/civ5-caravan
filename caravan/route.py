@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import pyscreeze
+import time
 from pathlib import Path
 
 from caravan.pointer import virtual_pointer
@@ -68,21 +69,28 @@ def main():
         pointer.move(325, 1050)
         pointer.click()
 
+        time.sleep(0.1)
+
+        # scroll window to top
+        pointer.move(10, 300)
+        pointer.click()
+
         # move to route list
         pointer.move(420, 450)
+
+        time.sleep(0.1)
 
         previous_img = str(thisdir / 'previous.png')
 
         geom = get_screenshot_geom(pointer)
-        for i in range(MAX_WHEEL_SCROLLS * 2):
+        for _ in range(MAX_WHEEL_SCROLLS):
             try:
                 box = locate(previous_img, geom=geom)
                 break
             except pyscreeze.ImageNotFoundException:
                 pass
-            # scroll down if previous route wasn't found
-            scroll = 120 if i < MAX_WHEEL_SCROLLS else -120
-            pointer.wheel(scroll)
+            pointer.wheel(120)
+            time.sleep(0.1)
         else:
             play_alarm()
             sys.exit('failed to find previous route')
