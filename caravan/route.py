@@ -1,5 +1,6 @@
 import contextlib
 import sys
+import json
 import os
 import subprocess
 import pyscreeze
@@ -8,8 +9,23 @@ from pathlib import Path
 from caravan.pointer import virtual_pointer
 
 MAX_WHEEL_SCROLLS = 10
+CIV_APP_ID = 'Civ5XP'
 
 thisdir = Path(__file__).resolve().parent
+
+
+def is_civ_focused():
+    out = subprocess.check_output(['swaymsg', '-t', 'get_tree'])
+    tree = json.loads(out)
+    q = [tree]
+    while q:
+        node = q.pop(0)
+        focus = node.get('focused', False)
+        if focus:
+            app_id = node.get('window_properties', {}).get('instance', '')
+            return app_id == CIV_APP_ID
+        children = node.get('nodes', [])
+        q.extend(children)
 
 
 @contextlib.contextmanager
@@ -44,6 +60,9 @@ def get_screenshot_geom(pointer):
 
 
 def main():
+    if not is_civ_focused():
+        sys.exit('civ window not currently active')
+
     with virtual_pointer() as pointer:
         # click "Establish Trade Route" button
         pointer.move(325, 1050)
