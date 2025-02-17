@@ -55,14 +55,15 @@ def main():
         previous_img = str(thisdir / 'previous.png')
 
         geom = get_screenshot_geom(pointer)
-        for _ in range(MAX_WHEEL_SCROLLS):
+        for i in range(MAX_WHEEL_SCROLLS * 2):
             try:
                 box = locate(previous_img, geom=geom)
                 break
             except pyscreeze.ImageNotFoundException:
                 pass
             # scroll down if previous route wasn't found
-            pointer.wheel(120)
+            scroll = 120 if i < MAX_WHEEL_SCROLLS else -120
+            pointer.wheel(scroll)
         else:
             play_alarm()
             sys.exit('failed to find previous route')
