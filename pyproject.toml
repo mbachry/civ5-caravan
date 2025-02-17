@@ -1,0 +1,37 @@
+[project]
+name = "civ5-caravan"
+version = "0.1"
+description = ""
+authors = [{name = "Marcin Bachry", email = "hegel666@gmail.com"}]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "opencv-python",
+  "pillow",
+  "pyscreeze",
+  "pywayland",
+  "libevdev",
+]
+
+[project.scripts]
+civ5-caravan = "caravan.route:main"
+
+[tool.setuptools.packages.find]
+include = ["caravan"]
+
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 120
+target-version = ['py311']
+skip-string-normalization = true
+
+[tool.isort]
+line_length = 120
+profile = 'black'
+
+[tool.ruff]
+line-length = 120
+target-version = 'py311'
