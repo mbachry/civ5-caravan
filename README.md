@@ -8,7 +8,7 @@ The script in action in slow motion (1 second pause after mouse movement):
 
 ## Install
 
-Linux and swaywm currently required. You also need ['grim'](https://sr.ht/~emersion/grim/) and `pipx`.
+Linux and swaywm currently required. You also need [`grim`](https://sr.ht/~emersion/grim/) and `pipx`.
 
 Clone the repo and install with:
 
