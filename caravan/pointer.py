@@ -1,14 +1,30 @@
 import contextlib
-import subprocess
-import json
 import sys
-from functools import cached_property, cache
+from functools import cached_property
 from pywayland.client import Display
-from pywayland.protocol.wayland import WlRegistry, WlSeat, WlPointer
+from pywayland.protocol.wayland import WlRegistry, WlSeat, WlPointer, WlOutput
 import libevdev
 
 from caravan import zwlr_virtual_pointer_manager_v1
 from caravan.zwlr_virtual_pointer_v1 import ZwlrVirtualPointerV1Proxy
+
+
+class Output:
+    def __init__(self, id_num):
+        self.id_num = id_num
+        self.width = 0
+        self.height = 0
+        self.scale = 0.0
+        self.current = False
+
+    def handle_mode(self, proxy, flags, width, height, refresh):
+        self.width = width
+        self.height = height
+        if flags & WlOutput.mode.current:
+            self.current = True
+
+    def handle_scale(self, proxy, factor):
+        self.scale = factor
 
 
 class Pointer:
@@ -18,6 +34,7 @@ class Pointer:
 
     def __init__(self, display: Display):
         self.display = display
+        self.outputs = []
 
     def handle_registry_global(self, registry: WlRegistry, id_num: int, interface: str, version: int) -> None:
         if interface == 'zwlr_virtual_pointer_manager_v1':
@@ -26,6 +43,12 @@ class Pointer:
             )
         elif interface == 'wl_seat':
             self.seat = registry.bind(id_num, WlSeat, version)
+        elif interface == 'wl_output':
+            output = Output(id_num)
+            wl_output = registry.bind(id_num, WlOutput, version)
+            wl_output.dispatcher['mode'] = output.handle_mode
+            wl_output.dispatcher['scale'] = output.handle_scale
+            self.outputs.append(output)
 
     @cached_property
     def wl_pointer(self) -> ZwlrVirtualPointerV1Proxy:
@@ -34,14 +57,17 @@ class Pointer:
         return self.pointer_manager.create_virtual_pointer(self.seat)
 
     @cached_property
+    def current_output(self) -> Output:
+        return next(o for o in self.outputs if o.current)
+
+    @cached_property
     def res_factor(self):
-        cur = get_current_output()
-        return (cur['rect']['width'] / 1920, cur['rect']['height'] / 1080)
+        return (self.current_output.width / 1920, self.current_output.height / 1080)
 
     @cached_property
     def scale_factor(self):
-        cur = get_current_output()
-        return cur['scale']
+        assert self.current_output.scale
+        return self.current_output.scale
 
     def move(self, x, y, real_coords=False):
         xr, yr = self.res_factor
@@ -87,12 +113,6 @@ def virtual_pointer():
         assert pointer.seat
 
         yield pointer
-
-
-@cache
-def get_current_output():
-    outs = subprocess.check_output(['swaymsg', '-t', 'get_outputs'])
-    return next(o for o in json.loads(outs) if o['active'])
 
 
 def main():
