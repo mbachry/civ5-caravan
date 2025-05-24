@@ -7,11 +7,15 @@ import libevdev
 
 from caravan import zwlr_virtual_pointer_manager_v1
 from caravan.zwlr_virtual_pointer_v1 import ZwlrVirtualPointerV1Proxy
+from caravan.zxdg_output_manager_v1 import ZxdgOutputManagerV1, ZxdgOutputManagerV1Proxy
 
 
 class Output:
-    def __init__(self, id_num):
+    def __init__(self, id_num, proxy):
         self.id_num = id_num
+        self.proxy = proxy
+        self.x = None
+        self.y = None
         self.width = 0
         self.height = 0
         self.scale = 0.0
@@ -26,11 +30,16 @@ class Output:
     def handle_scale(self, proxy, factor):
         self.scale = factor
 
+    def handle_logical_position(self, proxy, x, y):
+        self.x = x
+        self.y = y
+
 
 class Pointer:
     wl_pointer: WlPointer
     pointer_manager: zwlr_virtual_pointer_manager_v1.ZwlrVirtualPointerManagerV1Proxy
     seat: WlSeat
+    xdg_output_manager: ZxdgOutputManagerV1Proxy
 
     def __init__(self, display: Display):
         self.display = display
@@ -44,11 +53,18 @@ class Pointer:
         elif interface == 'wl_seat':
             self.seat = registry.bind(id_num, WlSeat, version)
         elif interface == 'wl_output':
-            output = Output(id_num)
             wl_output = registry.bind(id_num, WlOutput, version)
+            output = Output(id_num, wl_output)
             wl_output.dispatcher['mode'] = output.handle_mode
             wl_output.dispatcher['scale'] = output.handle_scale
             self.outputs.append(output)
+        elif interface == 'zxdg_output_manager_v1':
+            self.xdg_output_manager = registry.bind(id_num, ZxdgOutputManagerV1, version)
+
+    def get_xdg_outputs(self):
+        for output in self.outputs:
+            xdg_output = self.xdg_output_manager.get_xdg_output(output.proxy)
+            xdg_output.dispatcher['logical_position'] = output.handle_logical_position
 
     @cached_property
     def wl_pointer(self) -> ZwlrVirtualPointerV1Proxy:
@@ -110,7 +126,12 @@ def virtual_pointer():
 
         if not pointer.pointer_manager:
             sys.exit('zwlr_virtual_pointer_manager_v1 not supported by compositor')
+        if not pointer.xdg_output_manager:
+            sys.exit('zxdg_output_manager_v1 not supported by compositor')
         assert pointer.seat
+
+        pointer.get_xdg_outputs()
+        display.roundtrip()
 
         yield pointer
 

@@ -54,10 +54,12 @@ def play_alarm():
 
 
 def get_screenshot_geom(pointer):
+    output = pointer.current_output
+    out_x, out_y = output.x, output.y
     f = pointer.scale_factor
     x = int(250 * f)
     y = int(1050 * f)
-    return f'0,0 {x}x{y}'
+    return f'{out_x},{out_y} {x}x{y}'
 
 
 def main():
