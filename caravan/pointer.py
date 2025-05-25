@@ -90,9 +90,6 @@ class Pointer:
         if not real_coords:
             x *= xr
             y *= yr
-        else:
-            x = int(x / self.scale_factor)
-            y = int(y / self.scale_factor)
         self.wl_pointer.motion_absolute(0, int(x), int(y), int(1920 * xr), int(1080 * yr))
         self.wl_pointer.frame()
         self.display.roundtrip()
